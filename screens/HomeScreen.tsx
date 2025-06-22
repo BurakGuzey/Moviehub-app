@@ -1,0 +1,125 @@
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  FlatList,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { Movie } from '@/types';
+import MovieCard from '@/components/MovieCard';
+import { TMDB_API_KEY, TMDB_BASE_URL } from '@/constants/api';
+
+export default function HomeScreen() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const navigation = useNavigation<any>();
+
+  const listRef = useRef<FlatList>(null);
+
+  const fetchMovies = async (nextPage = 1) => {
+    if (nextPage > totalPages) return;
+
+    try {
+      if (nextPage === 1) {
+        setLoading(true);
+      } else {
+        setIsFetchingMore(true);
+      }
+
+      const url = `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${nextPage}`;
+      const response = await fetch(url);
+      const json = await response.json();
+
+      if (json.results) {
+        setMovies((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newItems = json.results.filter((m: Movie) => !existingIds.has(m.id));
+          return nextPage === 1 ? json.results : [...prev, ...newItems];
+        });
+        setTotalPages(json.total_pages);
+        setPage(nextPage);
+      } else {
+        setError('No popular movies found');
+      }
+    } catch (e) {
+      console.error('❌ Failed to fetch popular movies:', e);
+      setError('Failed to load popular movies');
+    } finally {
+      setLoading(false);
+      setIsFetchingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMovies(1);
+  }, []);
+
+  const isFavorite = (id: number): boolean => {
+    return false;
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor }]}>
+      {loading && <ActivityIndicator size="large" color="#999" />}
+      {error && <Text style={styles.error}>{error}</Text>}
+      <FlatList
+        ref={listRef}
+        data={movies}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <MovieCard
+            movie={item}
+            onPress={() => navigation.navigate('Details', { imdbID: item.id })}
+            isFavorite={isFavorite(item.id)}
+          />
+        )}
+        onEndReached={() => fetchMovies(page + 1)}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#999" /> : null}
+      />
+
+      <TouchableOpacity
+        style={styles.scrollTopBtn}
+        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+      >
+        <Text style={styles.scrollTopText}>↑</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 10,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  scrollTopBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#444',
+    padding: 12,
+    borderRadius: 30,
+    zIndex: 10,
+  },
+  scrollTopText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+});
