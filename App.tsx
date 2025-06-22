@@ -49,9 +49,10 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack.Navigator>
-          <Stack.Screen name="Movies" component={MainTabs} />
-          <Stack.Screen name="Details" component={MovieDetail} />
-          <Stack.Screen name="CastDetail" component={CastDetailScreen} />
+          <Stack.Screen name="Movies" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="Details" component={MovieDetail} options={{ title: 'Movie Details' }} />
+          <Stack.Screen name="CastDetail" component={CastDetailScreen} options={{ title: 'Cast Member' }} />
+
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

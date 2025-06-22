@@ -80,7 +80,7 @@ export default function SearchScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <TextInput
-        style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#555' : '#ccc' }]}
+        style={[styles.input, { color: isDark ? '#fff' : '#000', backgroundColor: isDark ? '#1a1a1a' : '#fff', borderColor: isDark ? '#555' : '#ccc' }]}
         placeholder="Search movies..."
         placeholderTextColor={isDark ? '#aaa' : '#888'}
         value={query}

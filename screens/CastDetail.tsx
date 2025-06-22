@@ -7,12 +7,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
+  Pressable,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { fetchCastDetails, fetchCastMovies } from '../constants/api';
 
 export default function CastDetailScreen() {
   const route = useRoute();
+  const navigation = useNavigation<any>();
   const { personId } = route.params as { personId: number };
 
   const [cast, setCast] = useState<any>(null);
@@ -74,13 +76,15 @@ export default function CastDetailScreen() {
           keyExtractor={(item) => item.id.toString()}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.movieCard}>
-              <Image
-                style={styles.moviePoster}
-                source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
-              />
-              <Text numberOfLines={1} style={styles.movieTitle}>{item.title}</Text>
-            </View>
+            <Pressable onPress={() => navigation.navigate('Details', { imdbID: item.id })}>
+              <View style={styles.movieCard}>
+                <Image
+                  style={styles.moviePoster}
+                  source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
+                />
+                <Text numberOfLines={1} style={styles.movieTitle}>{item.title}</Text>
+              </View>
+            </Pressable>
           )}
         />
       </SectionCard>
