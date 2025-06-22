@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
   useColorScheme,
+  Linking,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -88,67 +89,111 @@ export default function MovieDetail() {
           resizeMode="contain"
         />
       )}
-      <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>
-        {movie.title} ({movie.release_date?.substring(0, 4)})
-      </Text>
-      <Text style={[styles.text, { color: isDark ? '#aaa' : '#333' }]}>{i18n.t('genre')}: {movie.genres?.map((g: any) => g.name).join(', ')}</Text>
-      <Text style={[styles.text, { color: isDark ? '#aaa' : '#333' }]}>{i18n.t('director')}: —</Text>
-      <Text style={[styles.text, { color: isDark ? '#aaa' : '#333' }]}>{i18n.t('actors')}: —</Text>
-      <Text style={[styles.plot, { color: isDark ? '#ccc' : '#000' }]}>{movie.overview}</Text>
 
-      <Pressable onPress={toggleFavorite} style={styles.favButton}>
-        <Text style={styles.favText}>
-          {isFav ? i18n.t('removeFromFavorites') : i18n.t('addToFavorites')}
+      <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>{movie.title}</Text>
+
+      {movie.tagline ? (
+        <Text style={[styles.tagline, { color: isDark ? '#aaa' : '#555' }]}>"{movie.tagline}"</Text>
+      ) : null}
+
+      <Text style={[styles.section, { color: isDark ? '#fff' : '#000' }]}>Overview</Text>
+      <Text style={[styles.text, { color: isDark ? '#ddd' : '#333' }]}>{movie.overview}</Text>
+
+      <Text style={[styles.section, { color: isDark ? '#fff' : '#000' }]}>Genres</Text>
+      <Text style={[styles.text, { color: isDark ? '#ddd' : '#333' }]}>
+        {movie.genres.map((g: any) => g.name).join(', ')}
+      </Text>
+
+      <Text style={[styles.section, { color: isDark ? '#fff' : '#000' }]}>Release Date</Text>
+      <Text style={[styles.text, { color: isDark ? '#ddd' : '#333' }]}>{movie.release_date}</Text>
+
+      <Text style={[styles.section, { color: isDark ? '#fff' : '#000' }]}>Runtime</Text>
+      <Text style={[styles.text, { color: isDark ? '#ddd' : '#333' }]}>{movie.runtime} min</Text>
+
+      {movie.homepage && (
+        <Text
+          style={[styles.link, { color: isDark ? '#4eaaff' : '#0066cc' }]}
+          onPress={() => Linking.openURL(movie.homepage)}
+        >
+          Visit Homepage
         </Text>
-      </Pressable>
+      )}
 
       {cast.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Cast</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castList}>
-            {cast.map((actor) => (
-              <View key={actor.id} style={styles.castItem}>
-                <Image
-                  source={{
-                    uri: actor.profile_path
-                      ? `${TMDB_IMAGE_BASE_URL}${actor.profile_path}`
-                      : 'https://via.placeholder.com/100x150?text=No+Image',
-                  }}
-                  style={styles.castImage}
-                />
-                <Text style={[styles.castName, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>
-                  {actor.name}
+        <View style={{ marginTop: 24 }}>
+          <Text style={[styles.section, { color: isDark ? '#fff' : '#000' }]}>Top Cast</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+            {cast.map((member) => (
+              <Pressable
+                key={member.id}
+                onPress={() => navigation.navigate('CastDetail', { personId: member.id })}
+                style={{ marginRight: 12, alignItems: 'center' }}
+              >
+                {member.profile_path ? (
+                  <Image
+                    source={{ uri: `https://image.tmdb.org/t/p/w185${member.profile_path}` }}
+                    style={{ width: 80, height: 100, borderRadius: 8 }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 80,
+                      height: 100,
+                      backgroundColor: '#ccc',
+                      borderRadius: 8,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#555', fontSize: 12, textAlign: 'center' }}>No Image</Text>
+                  </View>
+                )}
+                <Text numberOfLines={1} style={{ width: 80, marginTop: 6, color: isDark ? '#fff' : '#000', fontSize: 12 }}>
+                  {member.name}
                 </Text>
-                <Text style={[styles.castCharacter, { color: isDark ? '#aaa' : '#666' }]} numberOfLines={1}>
-                  as {actor.character}
-                </Text>
-              </View>
+              </Pressable>
             ))}
           </ScrollView>
-        </>
+        </View>
       )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  poster: { width: '100%', height: 400, borderRadius: 10, marginBottom: 16 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
-  text: { fontSize: 16, marginBottom: 6 },
-  plot: { marginTop: 12, fontSize: 15, lineHeight: 22 },
-  favButton: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: '#007bff',
-    borderRadius: 8,
-    alignItems: 'center',
+  container: {
+    flex: 1,
+    padding: 16,
   },
-  favText: { color: 'white', fontSize: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginTop: 20, marginBottom: 10 },
-  castList: { flexDirection: 'row', marginBottom: 20 },
-  castItem: { marginRight: 12, alignItems: 'center', width: 80 },
-  castImage: { width: 80, height: 120, borderRadius: 6, marginBottom: 4, backgroundColor: '#ccc' },
-  castName: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
-  castCharacter: { fontSize: 11, textAlign: 'center' },
+  poster: {
+    width: '100%',
+    height: 400,
+    borderRadius: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  tagline: {
+    fontStyle: 'italic',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  section: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  link: {
+    marginTop: 8,
+    textDecorationLine: 'underline',
+    fontSize: 16,
+  },
 });
