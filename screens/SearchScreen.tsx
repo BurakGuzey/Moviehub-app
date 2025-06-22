@@ -5,26 +5,51 @@ import { Movie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { useNavigation } from '@react-navigation/native';
 import { TMDB_API_KEY, TMDB_BASE_URL } from '@/constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SearchScreen() {
-  console.log('📺 HomeScreen mounted');
-
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   const backgroundColor = useThemeColor({}, 'background');
   const isDark = backgroundColor === '#000';
-
   const navigation = useNavigation<any>();
 
-  const isFavorite = (id: number): boolean => {
-    return false; // Update with real favorite logic if needed
+  const loadFavorites = async () => {
+    const data = await AsyncStorage.getItem('favorites');
+    if (data) {
+      const favList = JSON.parse(data);
+      setFavorites(favList.map((m: Movie) => m.id));
+    }
   };
 
+  const toggleFavorite = async (movie: Movie) => {
+    const stored = await AsyncStorage.getItem('favorites');
+    let favList = stored ? JSON.parse(stored) : [];
+    let updated;
+
+    if (favorites.includes(movie.id)) {
+      favList = favList.filter((m: Movie) => m.id !== movie.id);
+      updated = favorites.filter((id) => id !== movie.id);
+    } else {
+      favList.push(movie);
+      updated = [...favorites, movie.id];
+    }
+
+    await AsyncStorage.setItem('favorites', JSON.stringify(favList));
+    setFavorites(updated);
+  };
+
+  const isFavorite = (id: number): boolean => favorites.includes(id);
+
   useEffect(() => {
-    console.log('🔍 Query changed:', query);
+    loadFavorites();
+  }, []);
+
+  useEffect(() => {
     const fetchMovies = async () => {
       if (query.length < 2) return;
 
@@ -33,20 +58,16 @@ export default function SearchScreen() {
 
       try {
         const url = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
-        console.log('🌐 TMDB URL:', url);
         const response = await fetch(url);
         const json = await response.json();
 
         if (json.results) {
           setResults(json.results);
-          console.log('✅ TMDB results:', json.results.length);
         } else {
           setResults([]);
-          console.warn('⚠️ TMDB returned no results');
           setError('No movies found');
         }
       } catch (e) {
-        console.error('❌ TMDB fetch error:', e);
         setError('Failed to fetch movies');
       } finally {
         setLoading(false);
@@ -75,6 +96,7 @@ export default function SearchScreen() {
             movie={item}
             onPress={() => navigation.navigate('Details', { imdbID: item.id })}
             isFavorite={isFavorite(item.id)}
+            onToggleFavorite={() => toggleFavorite(item)}
           />
         )}
       />

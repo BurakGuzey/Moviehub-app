@@ -33,6 +33,21 @@ export default function FavoritesScreen() {
     await AsyncStorage.setItem('favorites', JSON.stringify(updated));
   };
 
+  const toggleFavorite = async (movie: Movie) => {
+  const exists = favorites.some((m) => m.id === movie.id);
+  let updatedFavorites;
+
+  if (exists) {
+    updatedFavorites = favorites.filter((m) => m.id !== movie.id);
+  } else {
+    updatedFavorites = [...favorites, movie];
+  }
+
+  setFavorites(updatedFavorites);
+  await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+};
+
+
   const renderRightActions = (id: number) => (
     <Pressable onPress={() => removeFavorite(id)} style={styles.deleteButton}>
       <Text style={styles.deleteText}>Delete</Text>
@@ -57,6 +72,7 @@ export default function FavoritesScreen() {
                 movie={item}
                 onPress={() => navigation.navigate('Details', { imdbID: item.id })}
                 isFavorite={isFavorite(item.id)}
+                onToggleFavorite={() => toggleFavorite(item)}
               />
             </Swipeable>
           )}

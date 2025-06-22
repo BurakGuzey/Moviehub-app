@@ -3,15 +3,16 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Movie } from '@/types';
 import { TMDB_IMAGE_BASE_URL } from '@/constants/api';
 
-type Props = {
+interface Props {
   movie: Movie;
   onPress: () => void;
   isFavorite: boolean;
-};
+  onToggleFavorite: () => void;
+}
 
-const MovieCard: React.FC<Props> = ({ movie, onPress, isFavorite }) => {
+const MovieCard = ({ movie, onPress, isFavorite, onToggleFavorite }: Props) => {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       {movie.poster_path ? (
         <Image
           source={{ uri: `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` }}
@@ -23,11 +24,16 @@ const MovieCard: React.FC<Props> = ({ movie, onPress, isFavorite }) => {
           <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
+
       <View style={styles.info}>
         <Text style={styles.title}>{movie.title}</Text>
         <Text style={styles.rating}>⭐ {movie.vote_average?.toFixed(1) ?? 'N/A'}</Text>
         <Text style={styles.release}>{movie.release_date}</Text>
       </View>
+
+      <TouchableOpacity onPress={onToggleFavorite} style={styles.heart}>
+        <Text style={{ fontSize: 20 }}>{isFavorite ? '❤️' : '🤍'}</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -39,6 +45,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c1c1c',
     borderRadius: 8,
     overflow: 'hidden',
+    position: 'relative',
   },
   image: {
     width: 100,
@@ -70,6 +77,12 @@ const styles = StyleSheet.create({
   },
   release: {
     color: '#aaa',
+  },
+  heart: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 2,
   },
 });
 

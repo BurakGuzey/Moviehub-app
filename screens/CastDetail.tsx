@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
-  Linking,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { fetchCastDetails, fetchCastMovies } from '../constants/api';
@@ -36,48 +35,76 @@ export default function CastDetailScreen() {
     loadData();
   }, [personId]);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  if (loading) return <ActivityIndicator style={{ marginTop: 50 }} size="large" />;
   if (!cast) return <Text style={{ textAlign: 'center', marginTop: 50 }}>No cast info available.</Text>;
+
+  const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <View style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Image
-        style={styles.image}
-        source={{ uri: `https://image.tmdb.org/t/p/w500${cast.profile_path}` }}
-        resizeMode="cover"
-      />
+      {cast.profile_path && (
+        <Image
+          style={styles.image}
+          source={{ uri: `https://image.tmdb.org/t/p/w500${cast.profile_path}` }}
+          resizeMode="cover"
+        />
+      )}
       <Text style={styles.name}>{cast.name}</Text>
-      <Text style={styles.detail}>Birthday: {cast.birthday || 'N/A'}</Text>
+      {cast.known_for_department && (
+        <Text style={styles.detail}>Department: {cast.known_for_department}</Text>
+      )}
+      {cast.place_of_birth && (
+        <Text style={styles.detail}>Place of Birth: {cast.place_of_birth}</Text>
+      )}
+      {cast.birthday && <Text style={styles.detail}>Birthday: {cast.birthday}</Text>}
 
-      <Text style={styles.section}>Biography</Text>
-      <Text style={styles.biography}>{cast.biography || 'No biography available.'}</Text>
+      <SectionCard title="Biography">
+        <Text style={styles.biography}>{cast.biography || 'No biography available.'}</Text>
+      </SectionCard>
 
-      <Text style={styles.section}>Known For</Text>
-      <FlatList
-        data={movies}
-        horizontal
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.movieCard}>
-            <Image
-              style={styles.moviePoster}
-              source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
-            />
-            <Text numberOfLines={1} style={styles.movieTitle}>{item.title}</Text>
-          </View>
-        )}
-      />
+      <SectionCard title="Known For">
+        <FlatList
+          data={movies}
+          horizontal
+          keyExtractor={(item) => item.id.toString()}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View style={styles.movieCard}>
+              <Image
+                style={styles.moviePoster}
+                source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
+              />
+              <Text numberOfLines={1} style={styles.movieTitle}>{item.title}</Text>
+            </View>
+          )}
+        />
+      </SectionCard>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  image: { width: '100%', height: 400, borderRadius: 12 },
-  name: { fontSize: 24, fontWeight: 'bold', marginTop: 16 },
-  detail: { fontSize: 14, color: '#888', marginBottom: 8 },
-  biography: { fontSize: 16, lineHeight: 22, marginTop: 8 },
-  section: { fontSize: 20, fontWeight: '600', marginTop: 24, marginBottom: 12 },
+  container: { padding: 16, paddingBottom: 40 },
+  image: { width: '100%', height: 400, borderRadius: 16, marginBottom: 16 },
+  name: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
+  detail: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 4 },
+  biography: { fontSize: 16, lineHeight: 22 },
+  sectionCard: {
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
   movieCard: { marginRight: 12, width: 120 },
   moviePoster: { width: 120, height: 180, borderRadius: 8 },
   movieTitle: { fontSize: 14, marginTop: 4 },
