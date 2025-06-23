@@ -1,24 +1,50 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, Text, StyleSheet, Animated, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Alert,
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MovieCard from '@/components/MovieCard';
-import { Movie } from '@/types';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { Swipeable } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { RectButton } from 'react-native-gesture-handler';
 
-export default function FavoritesScreen() {
+import { Movie } from '@/types';
+import MovieCard from '@/components/MovieCard';
+import { useThemeColor } from '@/hooks/useThemeColor';
+
+export default function FavoriteScreen() {
   const [favorites, setFavorites] = useState<Movie[]>([]);
-  const backgroundColor = useThemeColor({}, 'background');
   const navigation = useNavigation<any>();
+  const backgroundColor = useThemeColor({}, 'background');
 
   const loadFavorites = async () => {
     const data = await AsyncStorage.getItem('favorites');
     if (data) {
-      setFavorites(JSON.parse(data));
+      const favList = JSON.parse(data);
+      setFavorites(favList);
     } else {
       setFavorites([]);
     }
+  };
+
+  const removeFavorite = async (movieId: number) => {
+    const updated = favorites.filter((m) => m.id !== movieId);
+    setFavorites(updated);
+    await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+  };
+
+  const confirmRemove = (movie: Movie) => {
+    Alert.alert(
+      'Remove Favorite',
+      `Are you sure you want to remove "${movie.title}" from favorites?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removeFavorite(movie.id) },
+      ]
+    );
   };
 
   useFocusEffect(
@@ -27,55 +53,35 @@ export default function FavoritesScreen() {
     }, [])
   );
 
-  const removeFavorite = async (id: number) => {
-    const updated = favorites.filter((movie) => movie.id !== id);
-    setFavorites(updated);
-    await AsyncStorage.setItem('favorites', JSON.stringify(updated));
-  };
-
-  const toggleFavorite = async (movie: Movie) => {
-  const exists = favorites.some((m) => m.id === movie.id);
-  let updatedFavorites;
-
-  if (exists) {
-    updatedFavorites = favorites.filter((m) => m.id !== movie.id);
-  } else {
-    updatedFavorites = [...favorites, movie];
-  }
-
-  setFavorites(updatedFavorites);
-  await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-};
-
-
-  const renderRightActions = (id: number) => (
-    <Pressable onPress={() => removeFavorite(id)} style={styles.deleteButton}>
+  const renderRightActions = (movie: Movie) => (
+    <RectButton
+      style={styles.deleteButton}
+      onPress={() => confirmRemove(movie)}
+    >
       <Text style={styles.deleteText}>Delete</Text>
-    </Pressable>
+    </RectButton>
   );
 
-  const isFavorite = (id: number): boolean => {
-    return favorites.some((f) => f.id === id);
-  };
+  const renderItem = ({ item }: { item: Movie }) => (
+    <Swipeable renderRightActions={() => renderRightActions(item)}>
+      <MovieCard
+        movie={item}
+        onPress={() => navigation.navigate('Details', { imdbID: item.id })}
+        // ✅ No isFavorite or toggleFavorite props here
+      />
+    </Swipeable>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {favorites.length === 0 ? (
-        <Text style={styles.empty}>No favorites yet. Add some!</Text>
+        <Text style={styles.empty}>No favorites yet</Text>
       ) : (
         <FlatList
           data={favorites}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-              <MovieCard
-                movie={item}
-                onPress={() => navigation.navigate('Details', { imdbID: item.id })}
-                isFavorite={isFavorite(item.id)}
-                onToggleFavorite={() => toggleFavorite(item)}
-              />
-            </Swipeable>
-          )}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16 }}
         />
       )}
     </View>
@@ -85,24 +91,23 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
   },
   empty: {
-    marginTop: 50,
     textAlign: 'center',
-    color: '#888',
+    marginTop: 100,
     fontSize: 16,
+    color: 'gray',
   },
   deleteButton: {
-    backgroundColor: '#ff3b30',
+    backgroundColor: 'red',
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingHorizontal: 20,
-    marginVertical: 6,
-    borderRadius: 10,
+    marginVertical: 8,
+    borderRadius: 8,
   },
   deleteText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
   },
 });

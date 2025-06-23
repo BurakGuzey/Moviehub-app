@@ -6,8 +6,8 @@ import { TMDB_IMAGE_BASE_URL } from '@/constants/api';
 interface Props {
   movie: Movie;
   onPress: () => void;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const MovieCard = ({ movie, onPress, isFavorite, onToggleFavorite }: Props) => {
@@ -31,9 +31,11 @@ const MovieCard = ({ movie, onPress, isFavorite, onToggleFavorite }: Props) => {
         <Text style={styles.release}>{movie.release_date}</Text>
       </View>
 
-      <TouchableOpacity onPress={onToggleFavorite} style={styles.heart}>
-        <Text style={{ fontSize: 20 }}>{isFavorite ? '❤️' : '🤍'}</Text>
-      </TouchableOpacity>
+      {onToggleFavorite && (
+        <TouchableOpacity onPress={onToggleFavorite} style={styles.heart}>
+          <Text style={{ fontSize: 20 }}>{isFavorite ? '❤️' : '🤍'}</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };

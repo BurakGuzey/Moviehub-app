@@ -18,9 +18,9 @@ import { useNavigation } from '@react-navigation/native';
 import { TMDB_API_KEY, TMDB_BASE_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const numColumns = 3;
+const numColumns = 2;
 const screenWidth = Dimensions.get('window').width;
-const cardWidth = screenWidth / numColumns - 16;
+const cardWidth = screenWidth / numColumns - 20;
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
@@ -44,14 +44,25 @@ export default function SearchScreen() {
 
     try {
       if (searchType === 'movie') {
-        const movieRes = await fetch(`${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
+        const movieRes = await fetch(
+          `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`
+        );
         const movieJson = await movieRes.json();
-        setResults(movieJson.results || []);
+        const filtered = (movieJson.results || []).filter((m: any) => m.poster_path);
+        setResults(filtered);
         setPeople([]);
       } else {
-        const peopleRes = await fetch(`${TMDB_BASE_URL}/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
-        const peopleJson = await peopleRes.json();
-        setPeople((peopleJson.results || []).filter((p: any) => p.profile_path));
+        let allPeople: any[] = [];
+        for (let page = 1; page <= 6; page++) {
+          const res = await fetch(
+            `${TMDB_BASE_URL}/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=${page}`
+          );
+          const json = await res.json();
+          const filtered = (json.results || []).filter((p: any) => p.profile_path);
+          allPeople = allPeople.concat(filtered);
+          if (allPeople.length >= 20) break;
+        }
+        setPeople(allPeople);
         setResults([]);
       }
     } catch (e) {
@@ -96,7 +107,7 @@ export default function SearchScreen() {
   }, [query, searchType]);
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>      
+    <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.toggleRow}>
         <TouchableOpacity
           style={[styles.toggleButton, searchType === 'movie' && styles.activeToggle]}
@@ -112,44 +123,99 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        style={[styles.input, { color: isDark ? '#fff' : '#000', backgroundColor: isDark ? '#1a1a1a' : '#fff', borderColor: isDark ? '#555' : '#ccc' }]}
-        placeholder={`Search ${searchType === 'movie' ? 'movies' : 'cast'}...`}
-        placeholderTextColor={isDark ? '#aaa' : '#888'}
-        value={query}
-        onChangeText={setQuery}
-      />
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: isDark ? '#fff' : '#000',
+              backgroundColor: isDark ? '#1a1a1a' : '#fff',
+              borderColor: isDark ? '#555' : '#ccc',
+              paddingRight: 30,
+            },
+          ]}
+          placeholder={`Search ${searchType === 'movie' ? 'movies' : 'cast'}...`}
+          placeholderTextColor={isDark ? '#aaa' : '#888'}
+          value={query}
+          onChangeText={setQuery}
+        />
+        {query.length > 0 && (
+          <TouchableOpacity
+            onPress={() => {
+              setQuery('');
+              setResults([]);
+              setPeople([]);
+            }}
+            style={styles.clearButton}
+          >
+            <Text style={{ color: isDark ? '#fff' : '#000', fontSize: 16 }}>×</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {loading && <ActivityIndicator size="large" color="#999" />}
       {error && <Text style={styles.error}>{error}</Text>}
 
       {searchType === 'person' ? (
         <FlatList
-          key={searchType} // forces rerender when switching types
+          key={searchType}
           data={people}
           keyExtractor={(item) => item.id.toString()}
           numColumns={numColumns}
           renderItem={({ item }) => (
-            <Pressable
-              onPress={() => navigation.navigate('CastDetail', { personId: item.id })}
-              style={{ marginBottom: 16, alignItems: 'center', width: cardWidth }}>
-              {item.profile_path ? (
-                <Image
-                  source={{ uri: `https://image.tmdb.org/t/p/w185${item.profile_path}` }}
-                  style={{ width: cardWidth * 0.9, height: 120, borderRadius: 8 }}
-                />
-              ) : (
-                <View style={{ width: cardWidth * 0.9, height: 120, backgroundColor: '#ccc', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: '#555', fontSize: 12, textAlign: 'center' }}>No Image</Text>
-                </View>
-              )}
-              <Text numberOfLines={1} style={{ width: cardWidth, marginTop: 6, color: isDark ? '#fff' : '#000', fontSize: 12, textAlign: 'center' }}>{item.name}</Text>
-            </Pressable>
-          )}
+  <Pressable
+    onPress={() => navigation.navigate('CastDetail', { personId: item.id })}
+    style={{
+      backgroundColor: isDark ? '#fff' : '#f0f0f0',
+      borderRadius: 10,
+      padding: 8,
+      marginBottom: 16,
+      marginHorizontal: 6, // ✅ horizontal spacing between cards
+      alignItems: 'center',
+      width: cardWidth - 12, // ✅ compensate for margin to prevent overflow
+      alignSelf: 'center',
+    }}
+  >
+    {item.profile_path ? (
+      <Image
+        source={{ uri: `https://image.tmdb.org/t/p/w185${item.profile_path}` }}
+        style={{ width: cardWidth * 0.9, height: 160, borderRadius: 8 }}
+        resizeMode="contain"
+      />
+    ) : (
+      <View
+        style={{
+          width: cardWidth * 0.9,
+          height: 120,
+          backgroundColor: '#ccc',
+          borderRadius: 8,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ color: '#555', fontSize: 12, textAlign: 'center' }}>No Image</Text>
+      </View>
+    )}
+    <Text
+      numberOfLines={1}
+      style={{
+        width: cardWidth,
+        marginTop: 6,
+        fontSize: 12,
+        fontWeight: '600',
+        textAlign: 'center',
+        color: '#000',
+      }}
+    >
+      {item.name}
+    </Text>
+  </Pressable>
+)}
+
         />
       ) : (
         <FlatList
-          key={searchType} // forces rerender when switching types
+          key={searchType}
           data={results}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
@@ -192,6 +258,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    zIndex: 1,
   },
   error: {
     color: 'red',
